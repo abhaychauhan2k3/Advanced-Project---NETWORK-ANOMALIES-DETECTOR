@@ -2,10 +2,10 @@ import pandas as pd
 
 # loading dataset 
 df = pd.read_csv(r"E:\Anomaly Detector\data\cicids2017_cleaned.csv")
-'''print(df.head())
-print("Shape :", df.shape)
-print("Columns : ",df.columns)
-print(df['Attack Type'].value_counts())'''
+# print(df.head())
+# print("Shape :", df.shape)
+# print("Columns : ",df.columns) #columns stored in Index([ col1, col2,....])
+# print(df['Attack Type'].value_counts())
 
 #splitting the dataset into features and labels
 X = df.drop(columns=['Attack Type'])
