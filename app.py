@@ -2,101 +2,110 @@ import streamlit as st
 import pandas as pd
 import joblib
 
-# ===============================================================
-# PAGE CONFIG
-# ===============================================================
-st.set_page_config(page_title="Network Anomaly Detector", layout="wide")
+st.set_page_config(
+    page_title="Network Anomaly Detector",
+    page_icon="🌐",
+    layout="centered",
+    initial_sidebar_state="expanded"
+)
 
-st.title("🧠 Network Anomaly Detector (Full Feature Mode)")
-st.markdown("""
-Upload a `.csv` file captured from **TShark** or your preprocessed dataset.  
-This version uses **all 53 features** for highly accurate traffic anomaly detection.
-""")
+st.sidebar.title("🔍 Navigation")
+menu = st.sidebar.radio(
+    "**Go To**",
+    ["🏠 Home", "ℹ️ About" ,"🧪Start Testing"]
+)
 
-# ===============================================================
-# LOAD MODEL (CACHED)
-# ===============================================================
-@st.cache_resource
-def load_model():
-    model = joblib.load(r"E:\Anomaly Detector\models\Random_forest_model.pkl")
-    return model
+if menu == "🏠 Home":
+    st.title("🌐 Network Anomaly Detector")
+    st.markdown(
+        """
+        Welcome to the **Network Anomaly Detector** 👋  
+        This project aims to detect **suspicious or malicious network traffic**  
+        using a **Machine Learning-based approach**.
 
-model = load_model()
+        Our goal is to enhance the security of network systems  
+        by identifying unusual traffic behavior in real time.
+        """
+    )
 
-# ===============================================================
-# LOAD REFERENCE DATA TO GET FEATURE ORDER
-# ===============================================================
-reference_data = pd.read_csv(r"E:\Anomaly Detector\data\cicids2017_cleaned.csv")
-model_features = [col for col in reference_data.columns if col != "Attack Type"]
+elif menu == "ℹ️ About":
+    st.title("ℹ️ About the Project")
 
-# ===============================================================
-# FILE UPLOAD SECTION
-# ===============================================================
-uploaded_file = st.file_uploader("📂 Upload your CSV file (with network traffic features)", type=["csv"])
+    st.markdown(
+        """
+        ### ⚙️ Project Overview
+        This project is designed to **detect network anomalies** such as suspicious or malicious activities in network traffic.  
+        The system classifies incoming network data as either **Normal** or **Suspicious**, helping to identify potential threats.
 
-if uploaded_file is not None:
-    try:
-        df = pd.read_csv(uploaded_file)
-        st.success(f"✅ Successfully loaded file with {df.shape[0]} rows and {df.shape[1]} columns.")
-        st.dataframe(df.head())
+        ### 🧠 Model Details
+        - **Algorithm Used:** `Random Forest Classifier  
+        - **Dataset:** CICIDS2017 (Cleaned and Preprocessed)  
+        - **Programming Language:** Python  
+        - **Libraries:** pandas, numpy, scikit-learn, and streamlit  
+        - **Cybersecurity Tool:** TShark for packet capturing
 
-        # ===============================================================
-        # VERIFY FEATURES
-        # ===============================================================
-        missing_features = [f for f in model_features if f not in df.columns]
-        extra_features = [f for f in df.columns if f not in model_features]
+        The model was trained using multiple extracted network features like flow duration, packet length statistics, forward/backward packet counts, and flag/timing parameters.
 
-        if missing_features:
-            st.error(f"⚠️ Missing required features in uploaded CSV: {missing_features}")
+        ### 🚀 Functionality
+        - Users can test the system **manually** by entering network parameters.  
+        - It also supports **real-time detection** by analyzing CSV files generated through **TShark**.  
+        - Predictions are displayed as **Normal Traffic** or **Suspicious Activity**.
+
+        ### 🔮 Future Scope
+        - Integrate **Deep Learning models** (like LSTM or CNN) for higher detection accuracy.  
+        - Implement **automatic packet capture** directly from live networks.  
+        - Develop **alert systems** to notify administrators about detected anomalies in real time.  
+        - Extend it to an **IPS(Intrusion Protection System)**.
+        """
+    )
+elif menu == "🧪Start Testing":
+    test_mode = st.sidebar.radio("Choose Test Mode:",["Manual Testing", "Real-Time Testing"])
+    if (test_mode == "Manual Testing"):
+        st.title("Manual Testing Selected")
+        uploaded_file = st.file_uploader("📂 Upload a CSV file for testing", type=["csv"])
+
+        if uploaded_file is not None:
+            df = pd.read_csv(uploaded_file, header = 0)
+            st.success("✅ File uploaded successfully!")
+    
+            st.subheader("📊 Uploaded Data Preview:")
+            st.dataframe(df.head())
         else:
-            st.info(f"📋 Using {len(model_features)} features for prediction.")
-            if extra_features:
-                st.warning(f"ℹ️ Ignoring extra columns: {extra_features}")
+            st.info("Please upload a CSV file to begin testing.")
+        if (st.button("Predict Now")):
+            try:
+            
+                model = joblib.load(r"E:\Anomaly Detector\models\Random_forest_model.pkl") 
+                scaler = joblib.load(r"E:\Anomaly Detector\models\scaler.pkl")
+            
+                input_data = pd.to_numeric(df.iloc[0], errors='coerce').values.reshape(1, -1)
+                input_scaled = scaler.transform(input_data)
+            
+                prediction = model.predict(input_scaled)[0]
 
-            # Use only model-relevant features
-            X = df[model_features]
+            
+                st.subheader("📃Prediction Result:")
+                if(prediction == 0):
+                    prediction = "Botnet Attack"
+                elif(prediction == 1):
+                    prediction = "Brute Force Attack"
+                elif(prediction == 2):
+                    prediction = "DDoS Attack"
+                elif(prediction == 3):
+                    prediction = "Dos"
+                elif(prediction == 4):
+                    prediction ="Normal Traffic"
+                elif(prediction == 5):
+                    prediction = "portScan Attack"
+                elif(prediction == 6):
+                    prediction = "Web Attack"
+                if(prediction == "Normal Traffic"):
+                    st.success(f"🔮The model prediction is: **{prediction}**")
+                else:
+                    st.error(f"🔮The model prediction is: **{prediction}**")
 
-            # ===============================================================
-            # PREDICTION
-            # ===============================================================
-            if st.button("🔍 Predict Anomalies"):
-                with st.spinner("Analyzing traffic..."):
-                    predictions = model.predict(X)
+            except Exception as e:
+                st.error(f"❌ Error during prediction: {e}")
 
-                df["Prediction"] = ["Normal" if p == 0 else "Attack" for p in predictions]
-
-                # Count results
-                attack_count = (df["Prediction"] == "Attack").sum()
-                normal_count = (df["Prediction"] == "Normal").sum()
-
-                # ===============================================================
-                # DISPLAY RESULTS
-                # ===============================================================
-                st.subheader("📊 Prediction Summary")
-                st.write(f"✅ Normal Traffic: **{normal_count}**")
-                st.write(f"🚨 Attacks Detected: **{attack_count}**")
-
-                # Highlight predictions
-                def highlight_predictions(row):
-                    color = "background-color: #ffcccc" if row["Prediction"] == "Attack" else "background-color: #ccffcc"
-                    return [color] * len(row)
-
-                st.subheader("🔎 Sample Prediction Results")
-                st.dataframe(df.head(30).style.apply(highlight_predictions, axis=1))
-
-                # ===============================================================
-                # DOWNLOAD RESULT
-                # ===============================================================
-                csv = df.to_csv(index=False).encode("utf-8")
-                st.download_button(
-                    label="📥 Download Full Prediction Results",
-                    data=csv,
-                    file_name="predicted_results_full.csv",
-                    mime="text/csv"
-                )
-
-    except Exception as e:
-        st.error(f"❌ Error while processing file: {e}")
-
-else:
-    st.info("📤 Please upload a CSV file to begin analysis.")
+    elif (test_mode == "Real-Time Testing"):
+        st.title("Real-Time Testing Selected")
