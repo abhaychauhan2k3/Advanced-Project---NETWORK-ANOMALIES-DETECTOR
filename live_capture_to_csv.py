@@ -6,9 +6,6 @@ import numpy as np
 import sys
 import traceback
 
-# ----------------------------
-# Config
-# ----------------------------
 FIELDS = [
     "frame.time_epoch",
     "frame.len",
@@ -66,9 +63,7 @@ REQUIRED_COLS = [
 ]
 
 
-# ----------------------------
-# Helper: build tshark command
-# ----------------------------
+
 def build_tshark_cmd():
     # Use interface number or name directly
     cmd = ["tshark", "-i", str(INTERFACE), "-l", "-T", "fields"]
@@ -84,9 +79,7 @@ def build_tshark_cmd():
     return cmd
 
 
-# ----------------------------
-# Start capture and write CSV
-# ----------------------------
+
 def start_capture():
     print("[+] Starting live capture using tshark...")
     print("[+] Writing extracted fields to:", OUTPUT_CSV)
@@ -134,9 +127,7 @@ def start_capture():
             print("[+] Saved:", OUTPUT_CSV)
 
 
-# ----------------------------
-# Load raw CSV safely
-# ----------------------------
+
 def load_raw_csv():
     # read with low_memory False to avoid mixed dtype warnings
     df = pd.read_csv(OUTPUT_CSV, low_memory=False)
@@ -172,9 +163,7 @@ def load_raw_csv():
     return df
 
 
-# ----------------------------
-# Compute features (robust)
-# ----------------------------
+
 def compute_features(df):
     # Ensure required tshark-derived columns exist
     for col in ["tcp.dstport", "udp.dstport", "tcp.len", "udp.length", "tcp.flags", "tcp.window_size", "frame.len", "frame.time_delta", "frame.time_epoch", "ip.src"]:
@@ -303,9 +292,7 @@ def compute_features(df):
     return out
 
 
-# ----------------------------
-# Process pipeline
-# ----------------------------
+
 def compute_processed_features():
     try:
         print("[+] Loading raw CSV…")
@@ -329,9 +316,7 @@ def compute_processed_features():
         traceback.print_exc()
 
 
-# ----------------------------
-# Create final averaged vector
-# ----------------------------
+
 def compute_final_csv():
     try:
         print("[+] Creating final averaged vector…")
@@ -360,9 +345,6 @@ def compute_final_csv():
         traceback.print_exc()
 
 
-# ----------------------------
-# Main
-# ----------------------------
 if __name__ == "__main__":
     try:
         start_capture()
