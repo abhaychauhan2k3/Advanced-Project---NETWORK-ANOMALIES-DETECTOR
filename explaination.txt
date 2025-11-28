@@ -1,0 +1,6 @@
+dekh bhai -> you have 3 python files - live_capture_to_csv.py - this is getting live traffic and preparing a csv livecapture_raw.csv
+other file is convert_row_to_features.py - it is making our livecapture_raw.csv to equivalent to the features our model is demanding for making predictions
+it is giving us a file as processed_features.csv 
+now we have a preparingfinal.csv - which is making a file perfect to feed to our model for making prediction 
+
+now you have to integrate these all three files into one and link it with real time testing and streamlit......

@@ -1,6 +1,9 @@
 import streamlit as st
 import pandas as pd
 import joblib
+import subprocess
+import time
+import os
 
 st.set_page_config(
     page_title="Network Anomaly Detector",
@@ -109,3 +112,90 @@ elif menu == "🧪Start Testing":
 
     elif (test_mode == "Real-Time Testing"):
         st.title("Real-Time Testing Selected")
+        st.write("Click the button below to start live packet capturing and real-time prediction.")
+
+    # Paths
+        LIVE_SCRIPT = r"E:\Anomaly Detector\live_capture_to_csv.py"
+        FINAL_CSV = "final.csv"
+
+        model_path = r"E:\Anomaly Detector\models\Random_forest_model.pkl"
+        scaler_path = r"E:\Anomaly Detector\models\scaler.pkl"
+
+    # BUTTON: Start Real-Time Prediction
+        if st.button("🚀 Start Live Predict"):
+
+            st.info("⏳ Starting live capture script... (This may take a few seconds)")
+
+        # Run your capturing pipeline
+            process = subprocess.Popen(
+                ["python", LIVE_SCRIPT],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+        )
+
+            st.success("📡 Live Capture Started!")
+            st.info("🔄 Waiting for packets and model input (final.csv)...")
+
+        # Real-time area to update predictions
+            status_box = st.empty()
+
+            model = joblib.load(model_path)
+            scaler = joblib.load(scaler_path)
+
+            last_prediction = None
+
+        # Start monitoring final.csv continuously
+            while True:
+                try:
+                    time.sleep(1)
+
+                # Check if file exists
+                    if not os.path.exists(FINAL_CSV):
+                        status_box.warning("⏳ Waiting for packet data...")
+                        continue
+
+                # Load final.csv
+                    df_final = pd.read_csv(FINAL_CSV, header=None)
+
+                    if df_final.shape[1] < 2:
+                        status_box.warning("⚠ CSV generated but empty. Waiting for more packets...")
+                        continue
+
+                # Extract values (second row contains numeric averages)
+                    feature_values = pd.to_numeric(df_final.iloc[1], errors="coerce").values.reshape(1, -1)
+
+                # Scale the data
+                    scaled_data = scaler.transform(feature_values)
+
+                # Prediction
+                    pred = model.predict(scaled_data)[0]
+
+                # Convert classes
+                    mapping = {
+                        0: "Botnet Attack",
+                        1: "Brute Force Attack",
+                        2: "DDoS Attack",
+                        3: "Dos Attack",
+                        4: "Normal Traffic",
+                        5: "PortScan Attack",
+                        6: "Web Attack"
+                }
+
+                    result = mapping.get(pred, "Unknown")
+
+                # Avoid repeating same message
+                    if result != last_prediction:
+                        last_prediction = result
+
+                        if result == "Normal Traffic":
+                            status_box.success(f"🟢 Prediction: **{result}**")
+                        else:
+                            status_box.error(f"🔴 Prediction: **{result}**")
+
+                except Exception as e:
+                    st.error(f"❌ Error: {e}")
+                    break
+
+
+    
