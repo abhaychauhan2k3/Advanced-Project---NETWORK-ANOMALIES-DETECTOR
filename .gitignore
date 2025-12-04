@@ -1,0 +1,14 @@
+# Ignore large datasets & models
+*.csv
+*.pkl
+data/
+models/
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.env
+
+# IDE
+.vscode/
